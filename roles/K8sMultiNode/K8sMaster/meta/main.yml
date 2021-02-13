@@ -1,4 +1,5 @@
 galaxy_info:
+  role_name: K8sMaster
   author: Aman Jhagrolia
   description: To configure kubernetes Master Node using Kubeadm
   company: CyberSpace

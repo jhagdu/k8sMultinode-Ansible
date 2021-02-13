@@ -1,4 +1,5 @@
 galaxy_info:
+  role_name: deploySiteOnK8s
   author: Aman Jhagrolia
   description: To deploy a containerized app over a kubernetes cluster 
   company: CyberSpace

@@ -1,0 +1,22 @@
+- hosts: localhost
+  gather_facts: false
+  vars_files:
+    - group_vars/localhost/aws_k8s_infra.yml
+  roles:
+    - awsInfra4K8s
+
+- hosts: K8sMaster
+  roles:
+    - { role: K8sMultiNode/K8sMaster, become: yes}
+
+- hosts: K8sWorkers
+  vars:
+    - k8s_master_ip: "{{ groups.K8sMaster }}"
+  roles:
+    - { role: K8sMultiNode/K8sWorker, become: yes}
+
+- hosts: K8sMaster
+  gather_facts: false
+  roles:
+    - { role: deploySiteOnK8s, become: yes}
+

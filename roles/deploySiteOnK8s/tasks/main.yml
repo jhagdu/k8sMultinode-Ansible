@@ -1,0 +1,79 @@
+- name: Install Python3
+  package:
+    name: python3
+    state: present
+
+- name: Install Required Python Packages
+  pip:
+    name: ['openshift', 'PyYAML']
+
+- name: Create a k8s namespace
+  community.kubernetes.k8s:
+    name: "{{ namespace }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+    wait: yes
+
+- name: Create Deployment for Website Pods
+  community.kubernetes.k8s:
+    state: present
+    wait: yes
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: web-dep
+        namespace: "{{ namespace }}"
+      spec:
+        selector:
+          matchLabels:
+            env: production
+        replicas: "{{ pod_replicas }}"
+        template:
+          metadata:
+            labels:
+              env: production
+          spec:
+            containers:
+            - name: web-cont
+              image: "{{ image_to_deploy }}"
+              ports:
+              - containerPort: "{{ exposed_container_port }}"
+
+- name: Create Service
+  community.kubernetes.k8s:
+    state: present
+    wait: yes
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: web-svc
+        namespace: "{{ namespace }}"
+      spec:
+        type: "{{ svc_type }}"
+        selector:
+          env: production
+        ports:
+        - port: "{{ exposed_container_port }}"
+          protocol: TCP
+          name: web-port
+
+- name: Wait for Some Seconds
+  pause:
+    seconds: "11"
+
+- name: Get Service Info
+  community.kubernetes.k8s_info:
+    api_version: v1
+    kind: Service
+    name: web-svc
+    namespace: "{{ namespace }}"
+  register: web_svc
+  ignore_errors: yes
+  
+- name: Print Msg
+  debug: 
+    msg: "Site Deployed! Site URL: {{ inventory_hostname}}:{{ web_svc.resources.0.spec.ports.0.nodePort }}/webapp.html"
+  ignore_errors: yes

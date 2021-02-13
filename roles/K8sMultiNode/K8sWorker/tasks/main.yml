@@ -1,0 +1,81 @@
+- name: "Adding Docker Yum Repository"
+  yum_repository:
+    name: docker
+    description: Yum Repository for Docker
+    baseurl: https://download.docker.com/linux/centos/7/x86_64/stable/
+    gpgcheck: no
+
+- name: "Check weather Docker is installed or not"
+  package_facts:
+    manager: auto
+
+- name: "Installing Docker if not"
+  command: "dnf install docker-ce --nobest -y"
+  register: dkr_install
+  when: "'docker-ce' not in ansible_facts.packages"
+
+- name: "Start Docker Service"
+  service:
+    name: "docker"
+    state: started
+    enabled: yes
+  failed_when:
+    - "'docker-ce' not in ansible_facts.packages"
+    - "dkr_install.rc != 0"
+
+- name: "Adding Kubernetes Yum Repository"
+  yum_repository:
+    name: kubernetes
+    description: Yum Repository for Kubernetes
+    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-$basearch
+    enabled: yes
+    state: present
+    gpgcheck: yes
+    repo_gpgcheck: yes
+    gpgkey: "https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"
+
+- name: Set systemd as docker driver
+  copy:
+    src: daemon.json
+    dest: /etc/docker/daemon.json
+  notify: Restart Docker
+
+- name: Flush Handlers
+  meta: flush_handlers
+
+- name: Install Some Required Packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - kubelet 
+    - kubeadm 
+    - kubectl
+    - iproute-tc
+
+- name: Start Kubelet Service
+  service:
+    name: "kubelet"
+    state: started
+    enabled: yes
+
+- name: Get Join Command
+  shell: "kubeadm token create --print-join-command"
+  delegate_to: "{{ item }}"
+  with_items: "{{ k8s_master_ip }}"
+  register: test
+  run_once: yes
+
+- name: Check if node is already Joined
+  stat:
+    path: /etc/kubernetes/pki/ca.crt
+  register: chek_k8s_ca
+
+- name: Reset Kubernetes Component
+  shell: "kubeadm reset --force"
+  register: reset_cluster
+  when: not chek_k8s_ca.stat.exists
+
+- name: Join Worker to Master
+  shell: "{{ test.results[0].stdout }}"
+  when: not chek_k8s_ca.stat.exists

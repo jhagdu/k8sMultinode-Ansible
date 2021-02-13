@@ -1,0 +1,6 @@
+- name: Save K8s Key PEM File
+  copy:
+    content: "{{ k8skp.key.private_key }}"
+    dest: "{{ ans_conf_dir }}{{ k8s_key_name }}.pem"
+    mode: '0400'
+

@@ -1,0 +1,14 @@
+# Name of K8s Namespace to be created
+namespace: webspace
+
+# Specify Docker Image to deploy on K8s cluster
+image_to_deploy: "jhagdu/httpd-web:v2"
+
+# Number of replicas to create
+pod_replicas: 3
+
+# Exposed Container Port
+exposed_container_port: 80
+
+# Service Type
+svc_type: NodePort

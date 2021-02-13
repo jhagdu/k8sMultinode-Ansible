@@ -1,0 +1,8 @@
+# Key-pair name for Kubernetes Nodes
+k8s_key_name: k8skey
+
+#### Security Groups Name ####
+# For Master Node
+master_sg_name: mastsg
+# For Worker Nodes
+worker_sg_name: worksg

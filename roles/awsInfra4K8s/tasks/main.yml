@@ -1,0 +1,146 @@
+- name: Create Key-Pair for K8s Nodes
+  ec2_key:
+    name: "{{ k8s_key_name }}"
+    state: present
+    profile: "{{ aws_profile }}"
+  register: k8skp
+  notify: Save K8s Key PEM File
+
+- name: Run Handlers
+  meta: flush_handlers
+
+- name: Create a security group for K8s Workers
+  ec2_group:
+    name: "{{ worker_sg_name }}"
+    description: Security Group for K8s Workers
+    state: present
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ pub_cidr }}"
+    rules_egress:
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+    profile: "{{ aws_profile }}"
+
+- name: Create a security group for K8s Master
+  ec2_group:
+    name: "{{ master_sg_name }}"
+    description: Security Group for K8s Master
+    state: present
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ pub_cidr }}"
+      - proto: tcp
+        from_port: "{{ kubeapi_port }}"
+        to_port: "{{ kubeapi_port }}"
+        cidr_ip: "{{ pub_cidr }}"
+      - proto: tcp
+        from_port: "{{ nodeport_svc_range_start }}"
+        to_port: "{{ nodeport_svc_range_end }}"
+        cidr_ip: "0.0.0.0/0"
+      - proto: all
+        group_name: "{{ worker_sg_name }}"
+    rules_egress:
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+    profile: "{{ aws_profile }}"
+
+- name: Update a security group for K8s Workers
+  ec2_group:
+    name: "{{ worker_sg_name }}"
+    description: Security Group for K8s Workers
+    state: present
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ pub_cidr }}"
+      - proto: all
+        group_name: "{{ master_sg_name }}"
+    rules_egress:
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+    profile: "{{ aws_profile }}"
+
+- name: Launch K8s Master Instance if there is no instance
+  ec2_instance:
+    name: K8sMaster
+    instance_type: "{{ master_inst_type }}"
+    image_id: "{{ master_ami_id }}"
+    key_name: "{{ k8s_key_name }}"
+    security_group: "{{ master_sg_name }}"
+    state: present
+    tags:
+      Name: master-node
+    vpc_subnet_id: "{{ master_subnet_id }}"
+    wait: yes
+    profile: "{{ aws_profile }}"
+  register: master_instance
+
+- name: Launch K8s Worker Nodes
+  ec2_instance:
+    name: K8sWorker{{ item }}
+    instance_type: "{{ worker_inst_type }}"
+    image_id: "{{ worker_ami_id }}"
+    key_name: "{{ k8s_key_name }}"
+    security_group: "{{ worker_sg_name }}"
+    state: present
+    tags:
+      Group: worker-node
+    vpc_subnet_id: "{{ worker_subnet_id }}"
+    wait: yes
+    profile: "{{ aws_profile }}"
+  with_sequence: count={{ no_of_workers }}
+  register: worker_instances
+
+- name: Updating Inventory with Master IP
+  blockinfile:
+    path: "{{ ansible_inv_path }}"
+    marker: "# ANSIBLE MANAGED BLOCK FOR K8s Master {mark}"
+    block: |
+            [K8sMaster]
+            {{ master_instance.instances.0.public_ip_address }}
+
+- name: Copy Template file
+  template:
+    src: "get_worker_ips.j2"
+    dest: "retrieve_worker_ips.j2"
+    variable_start_string: "[["
+    variable_end_string: "]]"
+    block_start_string: "[%"
+    block_end_string: "%]"
+
+- name: Retrieving IPs of Worker Nodes
+  set_fact:
+    work_ips: "{{ lookup('template', 'retrieve_worker_ips.j2') }}"
+
+- name: Updating Inventory with Worker IPs
+  blockinfile:
+    path: "{{ ansible_inv_path }}"
+    marker: "# ANSIBLE MANAGED BLOCK FOR K8s Workers {mark}"
+    block: |
+            [K8sWorkers]
+            {% set ip_list = work_ips.split('\n') %}
+            {% for item in ip_list %}
+            {{ item }}
+            {% endfor %}
+
+- name: Delete unnecessary files
+  file:
+    state: absent
+    path: "retrieve_worker_ips.j2"
+
+- name: Refreshing Inventory After Update
+  meta: refresh_inventory
+
+- name: Print Message
+  debug:
+    msg: "AWS Infrastructure For K8s Cluster is Ready!!"
+
+- name: Wait
+  pause:
+    seconds: "7"

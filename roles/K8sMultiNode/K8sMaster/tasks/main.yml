@@ -1,0 +1,123 @@
+- name: "Adding Docker Yum Repository"
+  yum_repository:
+    name: docker
+    description: Yum Repository for Docker
+    baseurl: https://download.docker.com/linux/centos/7/x86_64/stable/
+    gpgcheck: no
+
+- name: "Check weather Docker is installed or not"
+  package_facts:
+    manager: auto
+
+- name: "Installing Docker if not"
+  command: "dnf install docker-ce --nobest -y"
+  register: dkr_install
+  when: "'docker-ce' not in ansible_facts.packages"
+
+- name: "Start Docker Service"
+  service:
+    name: "docker"
+    state: started
+    enabled: yes
+  failed_when:
+    - "'docker-ce' not in ansible_facts.packages"
+    - "dkr_install.rc != 0"
+
+- name: "Adding Kubernetes Yum Repository"
+  yum_repository:
+    name: kubernetes
+    description: Yum Repository for Kubernetes
+    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-$basearch
+    enabled: yes
+    state: present
+    gpgcheck: yes
+    repo_gpgcheck: yes
+    gpgkey: "https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"
+
+- name: Set systemd as docker driver
+  copy:
+    src: daemon.json
+    dest: /etc/docker/daemon.json
+  notify: Restart Docker
+
+- name: Flush Handlers
+  meta: flush_handlers
+
+- name: Install Some Required Packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - kubelet 
+    - kubeadm 
+    - kubectl
+    - iproute-tc
+
+- name: Start Kubelet Service
+  service:
+    name: "kubelet"
+    state: started
+    enabled: yes
+
+- name: Pull Required K8s Docker Images
+  shell: kubeadm config images pull
+
+- name: Check if cluster is already Initialized
+  stat:
+    path: /etc/kubernetes/pki/ca.key
+  register: chk_k8s_ca
+
+- name: Reset Kubernetes Component
+  shell: "kubeadm reset --force"
+  register: reset_cluster
+  when: not chk_k8s_ca.stat.exists
+
+- name: Initialize Kubernetes Cluster If not
+  shell: "kubeadm {{ kubeadm_opts }} init --kubernetes-version {{ k8s_version }} --pod-network-cidr {{ pod_network_cidr }} --service-cidr {{ service_cidr }} {{ init_opts }}"
+  when: not chk_k8s_ca.stat.exists
+
+- name: Create Kube directory
+  file:
+    path: "{{ lookup('env', 'HOME') }}/.kube"
+    state: directory
+  delegate_to: localhost
+  ignore_errors: yes
+  run_once: yes
+
+- name: Download kubeconfig to local system
+  fetch:
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ lookup('env', 'HOME') }}/.kube/config"
+    flat: yes
+    fail_on_missing: no
+  ignore_errors: yes
+
+- name: Create Kube directory in K8s Master
+  file:
+    path: $HOME/.kube
+    state: directory
+  ignore_errors: yes
+
+- name: Copy Kubeconfig File to Home directory
+  copy:
+    src: /etc/kubernetes/admin.conf
+    remote_src: yes
+    dest: $HOME/.kube/config
+  ignore_errors: yes
+
+- name: Apply Flannel to K8s
+  shell: "export KUBECONFIG=/etc/kubernetes/admin.conf && kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
+
+- name: Copy Flannel Patch File
+  template:
+    src: flannel_network_patch.j2
+    dest: $HOME/flannel_network_patch.json
+    variable_start_string: "[["
+    variable_end_string: "]]"
+
+- name: Patch Flannel Network
+  shell: "export KUBECONFIG=/etc/kubernetes/admin.conf &&  kubectl patch configmap kube-flannel-cfg --patch-file $HOME/flannel_network_patch.json -n kube-system"
+
+- name: Restart Flannel Pods
+  shell: "export KUBECONFIG=/etc/kubernetes/admin.conf && kubectl delete pods -l=app=flannel -l=tier=node -n kube-system"
+

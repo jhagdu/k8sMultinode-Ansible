@@ -1,7 +1,7 @@
 DeploySiteOnK8s
 ===============
 
-To deploy a containerized app over a kubernetes cluster
+Ansible Role to deploy a containerized app over a kubernetes cluster
 
 Requirements
 ------------

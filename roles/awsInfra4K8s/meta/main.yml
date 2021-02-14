@@ -42,6 +42,9 @@ galaxy_info:
 
   galaxy_tags:
     - aws
+    - cloud
+    - awscloud
+    - awsinfrastructure
     - k8s
     - Kubernetes
     - k8smultinode

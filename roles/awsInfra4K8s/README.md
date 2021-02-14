@@ -1,7 +1,7 @@
 AWSInfra4K8s
 ============
 
-To create a AWS Infrastructure for Kubernetes MultiNode Cluster
+Ansible Role to create a AWS Infrastructure for Kubernetes MultiNode Cluster
 
 Requirements
 ------------

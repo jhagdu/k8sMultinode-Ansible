@@ -1,7 +1,7 @@
 K8sMaster
 =========
 
-To configure Kubernetes Master Node using Kubeadm
+Ansible Role to configure Kubernetes Master Node using Kubeadm
 
 Requirements
 ------------

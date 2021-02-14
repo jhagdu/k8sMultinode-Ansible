@@ -1,7 +1,7 @@
 K8sWorker
 =========
 
-To configure Kubernetes Worker Node using Kubeadm
+Ansible Role to configure Kubernetes Worker Node using Kubeadm
 
 Requirements
 ------------

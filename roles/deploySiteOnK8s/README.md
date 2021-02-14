@@ -48,7 +48,7 @@ site_deploy.yml is a additional variable file that contains required variables -
       vars_files:
          - site_deploy.yml
       roles:
-         - jhagdu.deploySiteOnK8s
+         - jhagdu.deploysiteonk8s
 
 License
 -------

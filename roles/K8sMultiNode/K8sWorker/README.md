@@ -31,7 +31,7 @@ Example Playbook
       vars:
         - k8s_master_ip: 127.0.0.1
       roles:
-         - jhagdu.K8sWorker
+         - jhagdu.k8sworker
 
 License
 -------

@@ -120,4 +120,3 @@
 
 - name: Restart Flannel Pods
   shell: "export KUBECONFIG=/etc/kubernetes/admin.conf && kubectl delete pods -l=app=flannel -l=tier=node -n kube-system"
-

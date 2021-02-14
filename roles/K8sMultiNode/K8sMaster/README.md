@@ -68,7 +68,7 @@ k8s_multinode.yml is a additional variable file that contains required variables
       vars_files:
          - k8s_multinode.yml
       roles:
-         - jhagdu.K8sMaster
+         - jhagdu.k8smaster
 
 License
 -------

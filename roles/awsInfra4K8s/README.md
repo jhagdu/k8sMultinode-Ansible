@@ -100,7 +100,7 @@ aws_k8s_infra.yml is a additional variable file that contains required variables
       vars_files:
          - aws_k8s_infra.yml
       roles:
-         - jhagdu.awsInfra4K8s
+         - jhagdu.awsinfra4k8s
 
 License
 -------

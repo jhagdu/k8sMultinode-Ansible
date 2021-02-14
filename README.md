@@ -4,7 +4,8 @@
 
 This repository contains the Ansible Playbook and Roles to deploy Kubernetes Multi-node cluster over AWS EC2 Instances. After successful deployment and configuration of K8s cluster a containerized webapp is deployed on that K8s Cluster.  
   
-### Ansible Roles -  
+### Ansible Roles -   
+
 **Role Name** | **Role Description**
 ------------- | --------------------
 **awsInfra4K8s** | To create a AWS Infrastructure for Kubernetes MultiNode Cluster
@@ -32,6 +33,5 @@ This repository contains the Ansible Playbook and Roles to deploy Kubernetes Mul
   
 ***Feel free to Contact if any issue!!***
 
-<a href="https://www.linkedin.com/in/amanjhagrolia143" target="_blank">
-  <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" />
-</a>
+<a href="https://www.linkedin.com/in/amanjhagrolia143" target="_blank"> <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" /> </a> 
+<a href="https://galaxy.ansible.com/jhagdu" target="_blank"> <img src="https://galaxy.ansible.com/assets/galaxy-logo-02.svg" height=30 width=140 /> </a>

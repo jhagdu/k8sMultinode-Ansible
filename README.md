@@ -29,7 +29,7 @@ This repository contains the Ansible Playbook and Roles to deploy Kubernetes Mul
 
 # Links
 
-[Click here for Video and Post](https://www.linkedin.com/in/amanjhagrolia143)
+[Click here for Video and Post](https://www.linkedin.com/posts/amanjhagrolia143_rightmentor-righteducation-worldrecordholder-activity-6767009821616091138-ebAm)
   
 ***Feel free to Contact if any issue!!***
 
